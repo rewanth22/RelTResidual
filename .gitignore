@@ -1,0 +1,10 @@
+ckpt/
+*.json
+.idea/
+__pycache__/
+data/*
+demo/*
+datasets/*
+lib/__pycache__/*
+models/__pycache__/*
+util/__pycache__/*
