@@ -15,7 +15,7 @@ def get_args_parser():
     parser.add_argument('--dataset', default='vg')
 
     # image path
-    parser.add_argument('--img_path', type=str, default='demo//vg1.jpg',
+    parser.add_argument('--img_path', type=str, default='demo/vg1.jpg',
                         help="Path of the test image")
 
     # * Backbone
@@ -44,16 +44,15 @@ def get_args_parser():
     parser.add_argument('--num_triplets', default=150, type=int,
                         help="Number of query slots")
     parser.add_argument('--pre_norm', action='store_true')
-    parser.add_argument('--freq_prior', default='data\\vg\\frequency_prior.npy')
+    parser.add_argument('--freq_prior', default='data\\vg\\frequency_prior_base.npy')
 
     # Loss
-    parser.add_argument('--resume', default='RUN_MODELS\Base_ckpt\checkpoint0034.pth', help='resume from checkpoint')
     parser.add_argument('--no_aux_loss', dest='aux_loss', action='store_false',
                         help="Disables auxiliary decoding losses (loss at each layer)")
 
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
-    
+    parser.add_argument('--resume', default='RUN_MODELS\Residual_Ckpt\checkpoint0034.pth', help='resume from checkpoint')
     parser.add_argument('--set_cost_class', default=1, type=float,
                         help="Class coefficient in the matching cost")
     parser.add_argument('--set_cost_bbox', default=5, type=float,
@@ -125,10 +124,10 @@ def main(args):
 
     img_path = args.img_path
     im = Image.open(img_path)
-    # plt.imshow(im)
+
     # mean-std normalize the input image (batch-size: 1)
     img = transform(im).unsqueeze(0)
-    # print(img)
+
     # propagate through the model
     outputs = model(img)
     
@@ -136,7 +135,6 @@ def main(args):
     probas = outputs['rel_logits'].softmax(-1)[0, :, :-1]
     probas_sub = outputs['sub_logits'].softmax(-1)[0, :, :-1]
     probas_obj = outputs['obj_logits'].softmax(-1)[0, :, :-1]
-    # print(outputs)
     keep = torch.logical_and(probas.max(-1).values > 0.1, torch.logical_and(probas_sub.max(-1).values > 0.1,
                                                                             probas_obj.max(-1).values > 0.1))
 
@@ -146,7 +144,6 @@ def main(args):
 
     topk = 10
     keep_queries = torch.nonzero(keep, as_tuple=True)[0]
-    # print(probas[keep_queries].max(-1))
     indices = torch.argsort(-probas[keep_queries].max(-1)[0] * probas_sub[keep_queries].max(-1)[0] * probas_obj[keep_queries].max(-1)[0])[:topk]
     keep_queries = keep_queries[indices]
 
@@ -178,7 +175,6 @@ def main(args):
         # get the feature map shape
         h, w = conv_features['0'].tensors.shape[-2:]
         im_w, im_h = im.size
-        print(indices)
         fig, axs = plt.subplots(ncols=len(indices), nrows=3, figsize=(22, 7))
         for idx, ax_i, (sxmin, symin, sxmax, symax), (oxmin, oymin, oxmax, oymax) in \
                 zip(keep_queries, axs.T, sub_bboxes_scaled[indices], obj_bboxes_scaled[indices]):

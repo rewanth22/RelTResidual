@@ -1,6 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 # Copyright (c) Institute of Information Processing, Leibniz University Hannover.
-
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -14,7 +14,7 @@ from .transformer import build_transformer
 
 class RelTR(nn.Module):
     """ RelTR: Relation Transformer for Scene Graph Generation """
-    def __init__(self, backbone, transformer, num_classes, num_rel_classes, num_entities, num_triplets, aux_loss=False, matcher=None):
+    def __init__(self, backbone, transformer, num_classes, num_rel_classes, num_entities, num_triplets, freq_prior_matrix, aux_loss=False, matcher=None):
         """ Initializes the model.
         Parameters:
             backbone: torch module of the backbone to be used. See backbone.py
@@ -63,7 +63,7 @@ class RelTR(nn.Module):
         self.sub_bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
         self.obj_class_embed = nn.Linear(hidden_dim, num_classes + 1)
         self.obj_bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
-
+        self.freq_prior=freq_prior_matrix
 
     def forward(self, samples: NestedTensor):
         """ The forward expects a NestedTensor, which consists of:
@@ -88,11 +88,11 @@ class RelTR(nn.Module):
         if isinstance(samples, (list, torch.Tensor)):
             samples = nested_tensor_from_tensor_list(samples)
         features, pos = self.backbone(samples)
-
+        freq_prior_matrix = np.load(self.freq_prior)
         src, mask = features[-1].decompose()
         assert mask is not None
         hs, hs_t, so_masks, _ = self.transformer(self.input_proj(src), mask, self.entity_embed.weight,
-                                                 self.triplet_embed.weight, pos[-1], self.so_embed.weight)
+                                                 self.triplet_embed.weight, pos[-1], self.so_embed.weight, freq_prior_matrix)
         so_masks = so_masks.detach()
         so_masks = self.so_mask_conv(so_masks.view(-1, 2, src.shape[-2],src.shape[-1])).view(hs_t.shape[0], hs_t.shape[1], hs_t.shape[2],-1)
         so_masks = self.so_mask_fc(so_masks)
@@ -391,6 +391,7 @@ def build(args):
         num_rel_classes = num_rel_classes,
         num_entities=args.num_entities,
         num_triplets=args.num_triplets,
+        freq_prior_matrix=args.freq_prior,
         aux_loss=args.aux_loss,
         matcher=matcher)
 
