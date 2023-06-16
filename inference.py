@@ -44,10 +44,10 @@ def get_args_parser():
     parser.add_argument('--num_triplets', default=150, type=int,
                         help="Number of query slots")
     parser.add_argument('--pre_norm', action='store_true')
-    parser.add_argument('--freq_prior', default='data\\vg\\frequency_prior.npy')
+    parser.add_argument('--freq_prior', default='data\\vg\\frequency_prior_7_5K.npy')
 
     # Loss
-    parser.add_argument('--resume', default='RUN_MODELS\Base_ckpt\checkpoint0034.pth', help='resume from checkpoint')
+    parser.add_argument('--resume', default='D:\Spring_23\ECE_285\Project\RelTR\RUN_MODELS\Residual_7_5K_Ckpt\checkpoint0039.pth', help='resume from checkpoint')
     parser.add_argument('--no_aux_loss', dest='aux_loss', action='store_false',
                         help="Disables auxiliary decoding losses (loss at each layer)")
 

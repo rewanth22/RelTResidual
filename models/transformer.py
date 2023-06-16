@@ -3,6 +3,7 @@
 """
 RelTR Transformer class.
 """
+import numpy as np
 import copy
 from typing import Optional
 
@@ -13,12 +14,11 @@ from torch import nn, Tensor
 
 class Transformer(nn.Module):
 
-    def __init__(self, d_model=512, nhead=8, num_encoder_layers=6,
+    def __init__(self,d_model=512, nhead=8, num_encoder_layers=6,
                  num_decoder_layers=6, dim_feedforward=2048, dropout=0.1,
-                 activation="relu", normalize_before=False,
+                 activation="relu", normalize_before=False, 
                  return_intermediate_dec=False):
         super().__init__()
-
         encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, activation, normalize_before)
         encoder_norm = nn.LayerNorm(d_model) if normalize_before else None
@@ -28,7 +28,7 @@ class Transformer(nn.Module):
                                                 dropout, activation, )
 
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, return_intermediate=return_intermediate_dec)
-
+        self.freq_prior_mlp = nn.Linear(150,d_model)
         self._reset_parameters()
         self.d_model = d_model
         self.nhead = nhead
@@ -38,7 +38,7 @@ class Transformer(nn.Module):
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
 
-    def forward(self, src, mask, entity_embed, triplet_embed, pos_embed, so_embed):
+    def forward(self, src, mask, entity_embed, triplet_embed, pos_embed, so_embed, freq_prior_matrix):
         # flatten NxCxHxW to HWxNxC
         bs, c, h, w = src.shape
         src = src.flatten(2).permute(2, 0, 1)
@@ -46,7 +46,12 @@ class Transformer(nn.Module):
 
         entity_embed, entity = torch.split(entity_embed, c, dim=1)
         triplet_embed, triplet = torch.split(triplet_embed, [c, 2 * c], dim=1)
-
+        # freq_prior_matrix = torch.Tensor(freq_prior_matrix).cuda()
+        freq_prior_matrix = torch.Tensor(freq_prior_matrix)
+        # print(freq_prior_matrix)
+        freq_prior = self.freq_prior_mlp(freq_prior_matrix)
+        triplet_embed = triplet_embed +freq_prior
+        triplet_embed = triplet_embed + freq_prior
         entity_embed = entity_embed.unsqueeze(1).repeat(1, bs, 1)
         triplet_embed = triplet_embed.unsqueeze(1).repeat(1, bs, 1)
         entity = entity.unsqueeze(1).repeat(1, bs, 1)
@@ -311,7 +316,7 @@ class TransformerDecoderLayer(nn.Module):
         tgt_sub = tgt_sub + self.dropout2_sub(tgt2_sub)
         tgt_sub = self.norm2_sub(tgt_sub)
         tgt_sub = self.forward_ffn_sub(tgt_sub)
-
+        tgt_sub = tgt_sub + self.with_pos_embed(tgt_sub, triplet_pos)
         # object branch - decoupled visual attention
         tgt2_obj, obj_maps = self.cross_attn_obj(query=self.with_pos_embed(tgt_obj, triplet_pos),
                                                  key=self.with_pos_embed(memory, pos),
@@ -326,7 +331,7 @@ class TransformerDecoderLayer(nn.Module):
         tgt_obj = tgt_obj + self.dropout2_obj(tgt2_obj)
         tgt_obj = self.norm2_obj(tgt_obj)
         tgt_obj = self.forward_ffn_obj(tgt_obj)
-
+        tgt_obj = tgt_obj + self.with_pos_embed(tgt_obj, triplet_pos)
         tgt_triplet = torch.cat((tgt_sub, tgt_obj), dim=-1)
         return tgt_entity, tgt_triplet, sub_maps, obj_maps
 
