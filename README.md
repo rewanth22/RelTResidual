@@ -53,6 +53,9 @@ python main.py --dataset vg --img_folder data/vg/images/ --ann_path data/vg/ --b
 python main.py --dataset vg --img_folder data/vg/images/ --ann_path data/vg/ --eval --batch_size 1 --resume ckpt/checkpoint0149.pth
 ```
 
+#### NOTE: 
+For working with the baseline, you need to swap 3 files. main.py with main_src.py, transformer.py with transformer_src.py and reltr.py with reltr_src.py. For working with the custom model vice-versa. This is done in order to prevent import error issues across different python scripts.
+
 ## Authors 
 
 [Krish Rewanth Sevuga Perumal](https://github.com/rewanth22), [Prasannakumaran Dhanasekaran](http://github.com/PrasannaKumaran)
