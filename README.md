@@ -55,4 +55,4 @@ python main.py --dataset vg --img_folder data/vg/images/ --ann_path data/vg/ --e
 
 ## Authors 
 
-[Krish Rewanth Sevuga Peruma](https://github.com/rewanth22), [Prasannakumaran Dhanasekaran](http://github.com/PrasannaKumaran)
+[Krish Rewanth Sevuga Perumal](https://github.com/rewanth22), [Prasannakumaran Dhanasekaran](http://github.com/PrasannaKumaran)
