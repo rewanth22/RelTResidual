@@ -9,3 +9,4 @@ lib/__pycache__/*
 models/__pycache__/*
 util/__pycache__/*
 RUN_MODELS/*
+OLD_MODELS/*
